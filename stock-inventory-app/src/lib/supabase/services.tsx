@@ -1,26 +1,29 @@
 'use client';
 
-import { createClient, User, Session } from '@supabase/supabase-js';
 import {
-  useState,
-  useEffect,
-  createContext,
-  useContext,
-  ReactNode,
-} from 'react';
-import type { Database } from '../types/schema';          // adjust the path if your generated types live elsewhere
+  createClient,
+  SupabaseClient,
+  User,
+  Session,
+} from '@supabase/supabase-js';
+import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 
-/* ------------------------------------------------------------------ */
-/* 1️⃣  SINGLE SUPABASE CLIENT                                          */
-/* ------------------------------------------------------------------ */
-export const supabase = createClient<Database>(
+/* ────────────────────────────
+   1.  Supabase client & types
+   ──────────────────────────── */
+
+export type Database = /* ↙︎  remove this line if you already
+  import your generated Database type */ any;
+
+export const supabase: SupabaseClient<Database> = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-/* ------------------------------------------------------------------ */
-/* 2️⃣  LIGHTWEIGHT AUTH PROVIDER + HOOK                                */
-/* ------------------------------------------------------------------ */
+/* ────────────────────────────
+   2.  Tiny auth context helper
+   ──────────────────────────── */
+
 type AuthContextType = {
   user: User | null;
   session: Session | null;
@@ -31,21 +34,22 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser]       = useState<User | null>(null);
-  const [isLoading, setLoad]  = useState(true);
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setLoading] = useState(true);
 
-  /* initial session + listener */
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setUser(data.session?.user ?? null);
-      setLoad(false);
+      setLoading(false);
     });
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_, data) => {
-      setSession(data.session);
-      setUser(data.session?.user ?? null);
-    });
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_evt, data) => {
+        setSession(data.session);
+        setUser(data.session?.user ?? null);
+      }
+    );
 
     return () => listener.subscription.unsubscribe();
   }, []);
@@ -59,44 +63,69 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
 
 export function useSupabaseAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useSupabaseAuth must be used inside SupabaseAuthProvider');
+  if (!ctx)
+    throw new Error('useSupabaseAuth must be used inside SupabaseAuthProvider');
   return ctx;
 }
 
-/* ------------------------------------------------------------------ */
-/* 3️⃣  100-LINE “FAKE” APIs SO IMPORTS RESOLVE                         */
-/*     Implement real DB logic later.                                 */
-/* ------------------------------------------------------------------ */
+/* ────────────────────────────
+   3.  Paper-thin “fake” APIs so
+       every import resolves
+   ──────────────────────────── */
+
+/* authApi is enough for <AuthForm /> */
 export const authApi = {
-  signIn : (email: string, password: string) =>
+  signIn: (email: string, password: string) =>
     supabase.auth.signInWithPassword({ email, password }),
   signOut: () => supabase.auth.signOut(),
 };
 
-/* --------------- fake “table” APIs (enough to compile) ---------- */
+/* generic table helper */
 type Table = 'alerts' | 'products' | 'locations' | 'batches' | 'movements';
 
-function makeApi<T = unknown>(name: Table) {
+function makeApi<T>(name: Table) {
+  /* swap stubs for real Supabase calls later */
   return {
-    /** return an empty array – replace with real select(*) later */
-    list:   () => Promise.resolve([] as T[]),
-
-    /** alias so existing code compiling: AlertsList.tsx expects getAll() */
-    getAll: () => Promise.resolve([] as T[]),
-
-    /** noop create / update / delete */
+    list: () => Promise.resolve([] as T[]),
+    getAll: () => Promise.resolve([] as T[]), // alias for legacy calls
     create: (row?: Partial<T>) => Promise.resolve(row ?? ({} as T)),
-    update: (id: string, row: Partial<T>) => Promise.resolve({ id, ...row } as T),
+    update: (id: string, row: Partial<T>) =>
+      Promise.resolve({ id, ...row } as T),
     remove: (id: string) => Promise.resolve({ id } as T),
   };
 }
 
-export const alertsApi     = makeApi<'alerts'>('alerts');
-export const productsApi   = makeApi<'products'>('products');
-export const locationsApi  = makeApi<'locations'>('locations');
-export const batchesApi    = makeApi<'batches'>('batches');
-export const movementsApi  = makeApi<'movements'>('movements');
+/* strongly-typed placeholders — adjust `Database` paths if needed */
+export const alertsApi = makeApi<
+  Database['public']['Tables']['alerts']['Row']
+>('alerts');
 
+export const productsApi = makeApi<
+  Database['public']['Tables']['products']['Row']
+>('products');
 
-/* ------------------------------------------------------------------ */
+export const locationsApi = makeApi<
+  Database['public']['Tables']['locations']['Row']
+>('locations');
 
+export const batchesApi = makeApi<
+  Database['public']['Tables']['batches']['Row']
+>('batches');
+
+export const movementsApi = makeApi<
+  Database['public']['Tables']['movements']['Row']
+>('movements');
+
+/* ────────────────────────────
+   4.  Dashboard helpers (stubs)
+   ──────────────────────────── */
+
+export async function checkStockLevel() {
+  /* TODO: compute low-stock products */
+  return Promise.resolve();
+}
+
+export async function generateAlerts() {
+  /* TODO: insert rows in `alerts` */
+  return Promise.resolve();
+}
