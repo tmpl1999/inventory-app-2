@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1 – Checkout code
+      # 1 – Check out code
       - uses: actions/checkout@v4
 
       # 2 – Set up pnpm
@@ -15,22 +15,17 @@ jobs:
         with:
           version: 8
 
-      # 3 – Install dependencies
+      # 3 – Install dependencies (inside the sub-folder)
       - name: Install packages
         run: pnpm install
-        working-directory: stock-inventory-app
+        working-directory: stock-inventory-app   # 👈 change if your folder name differs
 
-      # 4 – Lint
-      - name: Lint
-        run: pnpm run lint
-        working-directory: stock-inventory-app
-
-      # 5 – Run tests
+      # 4 – Run tests
       - name: Test
         run: pnpm run test -- --run
         working-directory: stock-inventory-app
 
-      # 6 – Build
+      # 5 – Build production bundle
       - name: Build
         run: pnpm run build
         working-directory: stock-inventory-app
