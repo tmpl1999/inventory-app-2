@@ -1,3 +1,5 @@
+'use client';
+
 import { createClient, SupabaseClient, User, Session } from '@supabase/supabase-js';
 import { useState, useEffect, createContext, useContext, ReactNode, createElement } from 'react';
 import { Batch, Location, Movement, Product, Alert } from '../types/schema';
