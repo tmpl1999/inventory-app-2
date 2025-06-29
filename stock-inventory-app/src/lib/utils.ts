@@ -1,10 +1,12 @@
 /**
- * General-purpose helpers used by multiple pages / components.
- * Flesh them out as needed – they only need to exist for the build.
+ * General-purpose helpers.
+ * Flesh them out as your app grows – they only need to exist for the build.
  */
 
-/* ---------- JSON downloader ------------------------------------ */
-export function downloadJsonAsFileT<T>(
+/* ────────────────────────────────────────────────────────────── */
+/*  JSON downloader                                              */
+/* ────────────────────────────────────────────────────────────── */
+export function downloadJsonAsFile<T>(
   data: T,
   filename = 'export.json'
 ): void {
@@ -13,23 +15,28 @@ export function downloadJsonAsFileT<T>(
   });
   const url = URL.createObjectURL(blob);
   const a   = document.createElement('a');
-  a.href = url;
-  a.download = filename;
+  a.href      = url;
+  a.download   = filename;
   a.click();
   URL.revokeObjectURL(url);
 }
 
-/* ---------- Date helpers --------------------------------------- */
+/* ────────────────────────────────────────────────────────────── */
+/*  Date helpers                                                 */
+/* ────────────────────────────────────────────────────────────── */
 export function formatDateTime(date: Date | string): string {
   const d = typeof date === 'string' ? new Date(date) : date;
-  return d.toLocaleString();
+  return d.toLocaleString();            // tweak to taste
 }
 
 export function formatDate(date: Date | string): string {
-  return new Date(date).toLocaleDateString('sv-SE'); // e.g. 2025-06-29
+  return new Date(date).toLocaleDateString('sv-SE'); // 2025-06-29
 }
 
-/* ---------- Tailwind class-name helper ------------------------- */
+/* ────────────────────────────────────────────────────────────── */
+/*  Tailwind class-name helper                                   */
+/* ────────────────────────────────────────────────────────────── */
 export function cn(...classes: (string | false | null | undefined)[]) {
   return classes.filter(Boolean).join(' ');
 }
+
