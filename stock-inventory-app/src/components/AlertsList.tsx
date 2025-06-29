@@ -104,7 +104,7 @@ export default function AlertsList() {
 
   // Filter alerts based on search term and active filter
   const filteredAlerts = alerts.filter((alert) => {
-    const product = products[alert.product_id];
+    const product = alert.product_id ? products[alert.product_id] : undefined;
     
     // First filter by search term
     const searchString = [
