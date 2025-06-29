@@ -73,17 +73,30 @@ export const authApi = {
   signOut: () => supabase.auth.signOut(),
 };
 
-function fake<T>(data: T): Promise<T> { return Promise.resolve(data); }
+/* --------------- fake “table” APIs (enough to compile) ---------- */
+type Table = 'alerts' | 'products' | 'locations' | 'batches' | 'movements';
 
-export const alertsApi     = { list: () => fake([]), create: () => fake({}) };
-export const productsApi   = { list: () => fake([]), create: () => fake({}) };
-export const locationsApi  = { list: () => fake([]), create: () => fake({}) };
-export const batchesApi    = { list: () => fake([]), create: () => fake({}) };
-export const movementsApi  = { list: () => fake([]), create: () => fake({}) };
+function makeApi<T = unknown>(name: Table) {
+  return {
+    /** return an empty array – replace with real select(*) later */
+    list:   () => Promise.resolve([] as T[]),
 
-/* dashboard helpers – stubs                                            */
-export async function generateAlerts()   { return []; }
-export async function checkStockLevel()  { return true; }
+    /** alias so existing code compiling: AlertsList.tsx expects getAll() */
+    getAll: () => Promise.resolve([] as T[]),
+
+    /** noop create / update / delete */
+    create: (row?: Partial<T>) => Promise.resolve(row ?? ({} as T)),
+    update: (id: string, row: Partial<T>) => Promise.resolve({ id, ...row } as T),
+    remove: (id: string) => Promise.resolve({ id } as T),
+  };
+}
+
+export const alertsApi     = makeApi<'alerts'>('alerts');
+export const productsApi   = makeApi<'products'>('products');
+export const locationsApi  = makeApi<'locations'>('locations');
+export const batchesApi    = makeApi<'batches'>('batches');
+export const movementsApi  = makeApi<'movements'>('movements');
+
 
 /* ------------------------------------------------------------------ */
 
