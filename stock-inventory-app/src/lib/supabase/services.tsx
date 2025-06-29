@@ -1,46 +1,30 @@
-'use client';
+/* -------- Auth hook / provider --------------------------------------- */
 
-import { createClient, User, Session } from '@supabase/supabase-js';
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
-import { Database } from '../types/schema';   // adjust if your generated types live elsewhere
+export const AuthContext = createContext<ReturnType<typeof useState> | null>(null);
 
-/* ---------- Single Supabase client ---------- */
+export function useSupabaseAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useSupabaseAuth must be inside <SupabaseAuthProvider>');
+  return ctx;
+}
 
-export const supabase = createClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-);
-
-/* ---------- Lightweight Auth helper ---------- */
-
-type AuthContextType = {
-  user: User | null;
-  session: Session | null;
-  isLoading: boolean;
-};
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
+export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser]         = useState<User | null>(null);
+  const [session, setSession]   = useState<Session | null>(null);
   const [isLoading, setLoading] = useState(true);
 
+  /* minimal listener – you can improve later */
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setUser(data.session?.user ?? null);
       setLoading(false);
     });
-
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, newSession) => {
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-      },
-    );
-
-    return () => listener.subscription.unsubscribe();
+    const { data: sub } = supabase.auth.onAuthStateChange((_ev, sess) => {
+      setSession(sess);
+      setUser(sess?.user ?? null);
+    });
+    return () => sub.subscription.unsubscribe();
   }, []);
 
   return (
@@ -50,17 +34,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used inside <AuthProvider>');
-  return ctx;
+/* -------- very thin “API” placeholders ------------------------------- */
+
+type Table = 'products' | 'alerts' | 'batches' | 'locations' | 'movements';
+
+function tableApi<T>(name: Table) {
+  return {
+    list:  () => supabase.from(name).select('*').then(r => r.data as T[]),
+    get:   (id: string) => supabase.from(name).select('*').eq('id', id).single(),
+    upsert:(row: Partial<T>) => supabase.from(name).upsert(row).single(),
+    remove:(id: string) => supabase.from(name).delete().eq('id', id),
+  };
 }
 
-/* ---------- “authApi” shim expected by old components ---------- */
-// Keep the original import (`authApi`) working while you refactor.
+export const productsApi  = tableApi<'products'>('products');
+export const alertsApi    = tableApi<'alerts'>('alerts');
+export const batchesApi   = tableApi<'batches'>('batches');
+export const locationsApi = tableApi<'locations'>('locations');
+export const movementsApi = tableApi<'movements'>('movements');
 
-export const authApi = {
-  signInWithEmail: (email: string, password: string) =>
-    supabase.auth.signInWithPassword({ email, password }),
-  signOut: () => supabase.auth.signOut(),
-};
+/* -------- stock-level helpers ---------------------------------------- */
+
+export async function checkStockLevel(productId: string) {
+  const [{ data: product }] = await Promise.all([
+    supabase.from('products').select('total_stock').eq('id', productId).single(),
+  ]);
+  return product?.total_stock ?? 0;
+}
+
+export async function generateAlerts() {
+  // naive demo – flag products at/below zero
+  const { data: low } = await supabase
+    .from('products')
+    .select('*')
+    .lte('total_stock', 0);
+
+  for (const p of low ?? []) {
+    await alertsApi.upsert({ product_id: p.id, alert_type: 'OUT_OF_STOCK' });
+  }
+}
