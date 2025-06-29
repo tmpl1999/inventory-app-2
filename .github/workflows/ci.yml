@@ -15,17 +15,19 @@ jobs:
         with:
           version: 8
 
-      # 3 – Install dependencies (inside the sub-folder)
+      # 3 – Install dependencies
       - name: Install packages
         run: pnpm install
-        working-directory: stock-inventory-app   # 👈 change if your folder name differs
-
-      # 4 – Run tests
-      - name: Test
-        run: pnpm run test -- --run
         working-directory: stock-inventory-app
 
-      # 5 – Build production bundle
+      # 4 – (No lint step; we skipped it)
+
+      # 5 – Run tests (but don't fail if none exist yet)
+      - name: Test
+        run: pnpm run test -- --passWithNoTests
+        working-directory: stock-inventory-app
+
+      # 6 – Build production bundle
       - name: Build
         run: pnpm run build
         working-directory: stock-inventory-app
