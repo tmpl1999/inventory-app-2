@@ -63,18 +63,17 @@ export interface User {
   last_name?: string;
 }
 
+/* --------------------------------- Alerts -------------------------------- */
 export interface Alert {
-  id: string;
-  type: AlertType;
-  severity: AlertSeverity;
-  title: string;
-  message: string;
-  product_id?: string;
-  batch_id?: string;
-  location_id?: string;
-  is_read: boolean;
-  created_at: string;
+  id: string;              // <-- already there
+  product_id: string;      // <-- already there
+  message: string;         // <-- already there
+  created_at?: string;     // <-- already (maybe) there
+
+  // 🔑  Add this line ↓↓↓
+  alert_type?: string;     // e.g. "LOW_STOCK", "EXPIRED" …
 }
+
 
 export interface StockSummary {
   total_products: number;
