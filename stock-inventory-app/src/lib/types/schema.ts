@@ -1,85 +1,38 @@
-/**
- * TypeScript interfaces representing the Supabase schema
- */
+/* =========================================================================
+   Minimal type definitions used by the stubbed APIs.
+   You can replace these with the full Supabase-generated types later
+   (e.g. import { Database } from '@/lib/database.types').
+   ======================================================================== */
 
-export interface Location {
-  id: string;
-  code: string;
-  name: string;
-  created_at: string;
-}
-
-export interface Product {
-  id: string;
-  sku: string;
-  name: string;
-  barcode: string | null;
-  reorder_point: number;
-  created_at: string;
-}
-
-export interface Batch {
-  id: string;
-  product_id: string;
-  lot_number: string;
-  expiry_date: string | null;
-  created_at: string;
-}
-
-export interface StockMovement {
-  id: string;
-  product_id: string;
-  batch_id: string | null;
-  location_id: string;
-  qty: number;
-  direction: 'IN' | 'OUT' | 'TRANSFER';
-  source: string | null;
-  ref: string | null;
-  created_at: string;
-}
-
-export interface StockLevel {
-  product_id: string;
-  location_id: string;
-  batch_id: string | null;
-  sku: string;
-  name: string;
-  loc_code: string;
-  lot_number: string | null;
-  qty_on_hand: number;
-  reorder_point: number;
-}
-
-export type MovementDirection = 'IN' | 'OUT' | 'TRANSFER';
-export type AlertType = 'LOW_STOCK' | 'CRITICAL_STOCK' | 'EXPIRING_BATCH' | 'DISCREPANCY';
-export type AlertSeverity = 'info' | 'warning' | 'error';
-export type UserRole = 'admin' | 'manager' | 'operator';
-
-export interface User {
-  id: string;
-  email: string;
-  role: UserRole;
-  first_name?: string;
-  last_name?: string;
-}
-
-/* --------------------------------- Alerts -------------------------------- */
 export interface Alert {
-  id: string;              // <-- already there
-  product_id: string;      // <-- already there
-  message: string;         // <-- already there
-  created_at?: string;     // <-- already (maybe) there
+  id: string;
+  product_id: string;
+  message: string;
+  created_at?: string;
 
-  // 🔑  Add this line ↓↓↓
-  alert_type?: string;     // e.g. "LOW_STOCK", "EXPIRED" …
+  /* newly added optional fields */
+  alert_type?: string;   // e.g. 'LOW_STOCK', 'EXPIRED'
+  resolved?: boolean;    // true = handled, false = needs attention
 }
 
+/* ----- other table row shapes can go here when you need them ----------- */
+export interface Product   { id: string; name: string; /* ... */ }
+export interface Location  { id: string; code: string; /* ... */ }
+export interface Batch     { id: string; lot_number: string; /* ... */ }
+export interface Movement  { id: string; product_id: string; qty: number }
 
-export interface StockSummary {
-  total_products: number;
-  total_batches: number;
-  total_locations: number;
-  low_stock_items: number;
-  expiring_batches: number;
-  recent_movements: number;
+/* ---------------------------------------------------------------------- */
+/*  Fallback Database type so services.ts can parameterise the client.    */
+/*  Swap this out for your real generated Database type when ready.      */
+/* ---------------------------------------------------------------------- */
+export interface Database {
+  public: {
+    Tables: {
+      alerts:     { Row: Alert };
+      products:   { Row: Product };
+      locations:  { Row: Location };
+      batches:    { Row: Batch };
+      movements:  { Row: Movement };
+    };
+  };
 }
