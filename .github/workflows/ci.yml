@@ -15,14 +15,15 @@ jobs:
         with:
           version: 8
 
-      # 3 – Install dependencies (inside sub-folder)
+      # 3 – Install dependencies
       - name: Install packages
         run: pnpm install
         working-directory: stock-inventory-app
 
-      # 4 – Lint (run from repo root so ESLint sees the config file)
+      # 4 – Lint
       - name: Lint
         run: pnpm run lint
+        working-directory: stock-inventory-app
 
       # 5 – Run tests
       - name: Test
@@ -33,4 +34,3 @@ jobs:
       - name: Build
         run: pnpm run build
         working-directory: stock-inventory-app
-
