@@ -1,30 +1,53 @@
-/* -------- Auth hook / provider --------------------------------------- */
+'use client';
 
-export const AuthContext = createContext<ReturnType<typeof useState> | null>(null);
+import { createClient, User, Session } from '@supabase/supabase-js';
+import {
+  useState,
+  useEffect,
+  createContext,
+  useContext,
+  ReactNode,
+} from 'react';
+import type { Database } from '../types/schema';          // adjust the path if your generated types live elsewhere
 
-export function useSupabaseAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useSupabaseAuth must be inside <SupabaseAuthProvider>');
-  return ctx;
-}
+/* ------------------------------------------------------------------ */
+/* 1️⃣  SINGLE SUPABASE CLIENT                                          */
+/* ------------------------------------------------------------------ */
+export const supabase = createClient<Database>(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+/* ------------------------------------------------------------------ */
+/* 2️⃣  LIGHTWEIGHT AUTH PROVIDER + HOOK                                */
+/* ------------------------------------------------------------------ */
+type AuthContextType = {
+  user: User | null;
+  session: Session | null;
+  isLoading: boolean;
+};
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser]         = useState<User | null>(null);
-  const [session, setSession]   = useState<Session | null>(null);
-  const [isLoading, setLoading] = useState(true);
+  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser]       = useState<User | null>(null);
+  const [isLoading, setLoad]  = useState(true);
 
-  /* minimal listener – you can improve later */
+  /* initial session + listener */
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setUser(data.session?.user ?? null);
-      setLoading(false);
+      setLoad(false);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_ev, sess) => {
-      setSession(sess);
-      setUser(sess?.user ?? null);
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_, data) => {
+      setSession(data.session);
+      setUser(data.session?.user ?? null);
     });
-    return () => sub.subscription.unsubscribe();
+
+    return () => listener.subscription.unsubscribe();
   }, []);
 
   return (
@@ -34,42 +57,33 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-/* -------- very thin “API” placeholders ------------------------------- */
-
-type Table = 'products' | 'alerts' | 'batches' | 'locations' | 'movements';
-
-function tableApi<T>(name: Table) {
-  return {
-    list:  () => supabase.from(name).select('*').then(r => r.data as T[]),
-    get:   (id: string) => supabase.from(name).select('*').eq('id', id).single(),
-    upsert:(row: Partial<T>) => supabase.from(name).upsert(row).single(),
-    remove:(id: string) => supabase.from(name).delete().eq('id', id),
-  };
+export function useSupabaseAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useSupabaseAuth must be used inside SupabaseAuthProvider');
+  return ctx;
 }
 
-export const productsApi  = tableApi<'products'>('products');
-export const alertsApi    = tableApi<'alerts'>('alerts');
-export const batchesApi   = tableApi<'batches'>('batches');
-export const locationsApi = tableApi<'locations'>('locations');
-export const movementsApi = tableApi<'movements'>('movements');
+/* ------------------------------------------------------------------ */
+/* 3️⃣  100-LINE “FAKE” APIs SO IMPORTS RESOLVE                         */
+/*     Implement real DB logic later.                                 */
+/* ------------------------------------------------------------------ */
+export const authApi = {
+  signIn : (email: string, password: string) =>
+    supabase.auth.signInWithPassword({ email, password }),
+  signOut: () => supabase.auth.signOut(),
+};
 
-/* -------- stock-level helpers ---------------------------------------- */
+function fake<T>(data: T): Promise<T> { return Promise.resolve(data); }
 
-export async function checkStockLevel(productId: string) {
-  const [{ data: product }] = await Promise.all([
-    supabase.from('products').select('total_stock').eq('id', productId).single(),
-  ]);
-  return product?.total_stock ?? 0;
-}
+export const alertsApi     = { list: () => fake([]), create: () => fake({}) };
+export const productsApi   = { list: () => fake([]), create: () => fake({}) };
+export const locationsApi  = { list: () => fake([]), create: () => fake({}) };
+export const batchesApi    = { list: () => fake([]), create: () => fake({}) };
+export const movementsApi  = { list: () => fake([]), create: () => fake({}) };
 
-export async function generateAlerts() {
-  // naive demo – flag products at/below zero
-  const { data: low } = await supabase
-    .from('products')
-    .select('*')
-    .lte('total_stock', 0);
+/* dashboard helpers – stubs                                            */
+export async function generateAlerts()   { return []; }
+export async function checkStockLevel()  { return true; }
 
-  for (const p of low ?? []) {
-    await alertsApi.upsert({ product_id: p.id, alert_type: 'OUT_OF_STOCK' });
-  }
-}
+/* ------------------------------------------------------------------ */
+
