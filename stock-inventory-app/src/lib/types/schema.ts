@@ -1,38 +1,40 @@
 /* =========================================================================
-   Minimal type definitions used by the stubbed APIs.
-   You can replace these with the full Supabase-generated types later
-   (e.g. import { Database } from '@/lib/database.types').
-   ======================================================================== */
+   Minimal row-shape definitions used by the stubbed APIs.
+   Swap these for your Supabase-generated types later.
+   ========================================================================= */
 
 export interface Alert {
   id: string;
   product_id: string;
   message: string;
   created_at?: string;
-
-  /* newly added optional fields */
-  alert_type?: string;   // e.g. 'LOW_STOCK', 'EXPIRED'
-  resolved?: boolean;    // true = handled, false = needs attention
+  alert_type?: string;  // e.g. 'LOW_STOCK'
+  resolved?: boolean;
 }
 
-/* ----- other table row shapes can go here when you need them ----------- */
-export interface Product   { id: string; name: string; /* ... */ }
-export interface Location  { id: string; code: string; /* ... */ }
-export interface Batch     { id: string; lot_number: string; /* ... */ }
+/* ------------------------------ Products ------------------------------- */
+export interface Product {
+  id: string;
+  name: string;
+  sku?: string;          // ← NEW: Stock-Keeping Unit code
+  description?: string;
+  created_at?: string;
+}
+
+/* ------------- Other tables (skeletons – expand later) ---------------- */
+export interface Location  { id: string; code: string;  name?: string }
+export interface Batch     { id: string; lot_number: string; product_id: string }
 export interface Movement  { id: string; product_id: string; qty: number }
 
-/* ---------------------------------------------------------------------- */
-/*  Fallback Database type so services.ts can parameterise the client.    */
-/*  Swap this out for your real generated Database type when ready.      */
-/* ---------------------------------------------------------------------- */
+/* --------------- Fallback Database type for the stub client ----------- */
 export interface Database {
   public: {
     Tables: {
-      alerts:     { Row: Alert };
-      products:   { Row: Product };
-      locations:  { Row: Location };
-      batches:    { Row: Batch };
-      movements:  { Row: Movement };
+      alerts:    { Row: Alert };
+      products:  { Row: Product };
+      locations: { Row: Location };
+      batches:   { Row: Batch };
+      movements: { Row: Movement };
     };
   };
 }
