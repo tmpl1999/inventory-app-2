@@ -22,16 +22,22 @@ export function downloadJsonAsFile<T>(
 }
 
 /* ────────────────────────────────────────────────────────────── */
-/*  Date helpers                                                 */
+/*  Date helpers – now accept undefined too                      */
 /* ────────────────────────────────────────────────────────────── */
-export function formatDateTime(date: Date | string): string {
+
+/** "29/06/2025, 13:42" (returns empty string if date is falsy) */
+export function formatDateTime(date?: Date | string): string {
+  if (!date) return '';
   const d = typeof date === 'string' ? new Date(date) : date;
-  return d.toLocaleString();            // tweak to taste
+  return d.toLocaleString();
 }
 
-export function formatDate(date: Date | string): string {
-  return new Date(date).toLocaleDateString('sv-SE'); // 2025-06-29
+/** "2025-06-29" (returns empty string if date is falsy) */
+export function formatDate(date?: Date | string): string {
+  if (!date) return '';
+  return new Date(date).toLocaleDateString('sv-SE');
 }
+
 
 /* ────────────────────────────────────────────────────────────── */
 /*  Tailwind class-name helper                                   */
